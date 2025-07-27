@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkers with AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        /* General Body Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Start Screen */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 26, 0.95);
+            z-index: 2000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #start-screen h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        #start-game-btn {
+            padding: 15px 35px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            background: #4a90e2;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        #start-game-btn:hover {
+            background-color: #357abd;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Main Game Container */
+        #game-container {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px; /* Max width for the game board and controls */
+            margin: 20px 0; /* Add margin for better spacing on scroll */
+            position: relative;
+        }
+        
+        /* Mute Button */
+        #mute-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #f0f0f0;
+            z-index: 100;
+        }
+
+
+        /* Header with Title and Turn Indicator */
+        .game-header {
+            text-align: center;
+        }
+
+        .game-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        #turn-indicator {
+            font-size: 1.2rem;
+            margin-top: 5px;
+            color: #cccccc;
+            height: 40px; /* Increased height for taunts */
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Game Info Bar (Mode, Record) */
+        .game-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background-color: #2c2c2c;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-sizing: border-box;
+        }
+
+        /* Game Mode Selection */
+        .game-mode {
+            display: flex;
+            gap: 10px;
+        }
+        .game-mode label {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+            font-size: 0.9rem;
+        }
+        .game-mode input[type="radio"] {
+            display: none;
+        }
+        .game-mode input[type="radio"]:checked + label {
+            background-color: #4a90e2;
+            color: white;
+        }
+        
+        /* Win/Loss Record Counter */
+        #record-counter {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #c2c2c2;
+        }
+        #record-counter .wins { color: #4CAF50; }
+        #record-counter .losses { color: #F44336; }
+
+
+        /* Scoreboard Styling */
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        #black-score { color: #c2c2c2; }
+        #red-score { color: #ff5c5c; }
+
+        /* Checkerboard Styling */
+        #checkerboard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            max-width: 560px; /* Ensures board is not too large on desktop */
+            aspect-ratio: 1 / 1; /* Maintain square shape */
+            border: 5px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            background-color: #333;
+            position: relative;
+        }
+        
+        /* Overlay for AI thinking */
+        #thinking-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            z-index: 10;
+            border-radius: 5px; /* Match board radius */
+        }
+
+
+        /* Board Square Styling */
+        .square {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .square.light { background-color: #f0d9b5; }
+        .square.dark { background-color: #b58863; }
+
+        /* Checker Piece Styling */
+        .piece {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .piece.black {
+            background-color: #1e1e1e;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2), 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .piece.red {
+            background-color: #c40000;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* King Piece Styling */
+        .piece.king::after {
+            content: '👑';
+            font-size: calc(min(3vw, 24px)); /* Responsive king icon */
+            color: #ffd700;
+            text-shadow: 0 0 5px rgba(0,0,0,0.7);
+        }
+
+        /* UI States for Pieces and Squares */
+        .selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px 5px #4a90e2;
+        }
+
+        .valid-move {
+            background-color: rgba(74, 144, 226, 0.5);
+            border-radius: 50%;
+            width: 60%;
+            height: 60%;
+        }
+
+        /* Controls Area */
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .gemini-btn {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(145deg, #8e44ad, #9b59b6);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .gemini-btn:hover {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .gemini-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #new-game-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(145deg, #5a5a5a, #2a2a2a);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #new-game-btn:hover {
+            background: linear-gradient(145deg, #6b6b6b, #3c3c3c);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Modal for Game Over & Hints */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #2c2c2c;
+            padding: 30px 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            animation: slide-down 0.5s ease-out;
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        @keyframes slide-down {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 2rem;
+            color: #e0e0e0;
+        }
+        
+        #hint-text {
+            font-size: 1.1rem;
+            color: #ddd;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+
+        .modal-content button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: #4a90e2;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .modal-content button:hover {
+            background-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="start-screen">
+        <h1>Checkers</h1>
+        <button id="start-game-btn">Start Game</button>
+    </div>
+
+    <div id="game-container">
+        <button id="mute-btn">🔊</button>
+        <div class="game-header">
+            <h1>Checkers</h1>
+            <p id="turn-indicator">Black's Turn</p>
+        </div>
+
+        <div class="game-info-bar">
+            <div class="game-mode">
+                <input type="radio" id="mode-pvp" name="game-mode" value="pvp">
+                <label for="mode-pvp">Player vs Player</label>
+                <input type="radio" id="mode-pva" name="game-mode" value="pva" checked>
+                <label for="mode-pva">Player vs AI</label>
+            </div>
+            <div id="record-counter">
+                Record: <span class="wins">0W</span> – <span class="losses">0L</span>
+            </div>
+        </div>
+
+        <div class="scoreboard">
+            <div id="black-score" class="score">Black (You): 12</div>
+            <div id="red-score" class="score">Red (AI): 12</div>
+        </div>
+
+        <div id="checkerboard">
+            <div id="thinking-overlay">Thinking...</div>
+        </div>
+
+        <div class="controls">
+            <button id="new-game-btn">New Game</button>
+            <button id="hint-btn" class="gemini-btn">✨ Get Hint</button>
+            <button id="taunt-btn" class="gemini-btn">✨ Taunt Me</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="winner-message"></h2>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+    
+    <!-- Hint Modal -->
+    <div id="hint-modal" class="modal">
+        <div class="modal-content">
+            <h2>AI Coach</h2>
+            <p id="hint-text">Thinking of a good move...</p>
+            <button id="close-hint-btn">Got it!</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const startScreen = document.getElementById('start-screen');
+            const startGameBtn = document.getElementById('start-game-btn');
+            const gameContainer = document.getElementById('game-container');
+            const boardElement = document.getElementById('checkerboard');
+            const newGameBtn = document.getElementById('new-game-btn');
+            const turnIndicator = document.getElementById('turn-indicator');
+            const blackScoreElement = document.getElementById('black-score');
+            const redScoreElement = document.getElementById('red-score');
+            const modal = document.getElementById('game-over-modal');
+            const winnerMessage = document.getElementById('winner-message');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const pvpRadio = document.getElementById('mode-pvp');
+            const pvaRadio = document.getElementById('mode-pva');
+            const recordCounter = document.getElementById('record-counter');
+            const hintBtn = document.getElementById('hint-btn');
+            const tauntBtn = document.getElementById('taunt-btn');
+            const hintModal = document.getElementById('hint-modal');
+            const hintText = document.getElementById('hint-text');
+            const closeHintBtn = document.getElementById('close-hint-btn');
+            const muteBtn = document.getElementById('mute-btn');
+
+            // Game State Variables
+            let boardState = [];
+            let currentPlayer = 'black';
+            let selectedPiece = null;
+            let blackScore = 12;
+            let redScore = 12;
+            let gameMode = 'pva';
+            let wins = 0;
+            let losses = 0;
+            let isMuted = true;
+            const AI_PLAYER = 'red';
+            const AI_DEPTH = 2;
+
+            // Constants
+            const BOARD_SIZE = 8;
+            const PIECE = {
+                EMPTY: 0,
+                BLACK: 1,
+                RED: 2,
+                BLACK_KING: 1.5,
+                RED_KING: 2.5
+            };
+
+            // --- Sound Design using Tone.js ---
+            let music, wind, chatter, slideSound, captureSound;
+
+            function setupSounds() {
+                // Background Music
+                music = new Tone.Synth({
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1 }
+                }).toDestination();
+                music.volume.value = -24;
+
+                const musicLoop = new Tone.Sequence((time, note) => {
+                    music.triggerAttackRelease(note, '8n', time);
+                }, ['C3', 'E3', 'G3', 'B3'], '2n').start(0);
+
+                // Wind sound
+                wind = new Tone.Noise('pink').toDestination();
+                const windFilter = new Tone.AutoFilter({
+                    frequency: '8m',
+                    baseFrequency: 100,
+                    octaves: 4
+                }).toDestination();
+                wind.connect(windFilter);
+                wind.volume.value = -35;
+
+                // Chatter sound
+                chatter = new Tone.Noise('brown').toDestination();
+                const chatterFilter = new Tone.AutoFilter({
+                    frequency: '4m',
+                    baseFrequency: 400,
+                    octaves: 3
+                }).toDestination();
+                chatter.connect(chatterFilter);
+                chatter.volume.value = -45;
+
+                // Slide sound effect
+                slideSound = new Tone.NoiseSynth({
+                    noise: { type: 'white' },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+                }).toDestination();
+                slideSound.volume.value = -10;
+                
+                // Capture sound effect
+                captureSound = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 10,
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' }
+                }).toDestination();
+                captureSound.volume.value = -5;
+
+                Tone.Transport.bpm.value = 80;
+            }
+
+            function startAudio() {
+                if (Tone.context.state !== 'running') {
+                    Tone.context.resume();
+                }
+                Tone.Transport.start();
+                wind.start();
+                chatter.start();
+                isMuted = false;
+                muteBtn.textContent = '🔊';
+            }
+            
+            function toggleMute() {
+                isMuted = !isMuted;
+                Tone.Destination.mute = isMuted;
+                muteBtn.textContent = isMuted ? '🔇' : '🔊';
+            }
+            
+            /**
+             * Initializes the game state and renders the board.
+             */
+            function initializeGame() {
+                gameMode = document.querySelector('input[name="game-mode"]:checked').value;
+                boardState = [];
+                currentPlayer = 'black';
+                selectedPiece = null;
+                blackScore = 12;
+                redScore = 12;
+
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    boardState[row] = [];
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (row < 3 && (row + col) % 2 !== 0) {
+                            boardState[row][col] = PIECE.RED;
+                        } else if (row > 4 && (row + col) % 2 !== 0) {
+                            boardState[row][col] = PIECE.BLACK;
+                        } else {
+                            boardState[row][col] = PIECE.EMPTY;
+                        }
+                    }
+                }
+                
+                renderBoard();
+                updateTurnIndicator();
+                updateScores();
+                updateGeminiButtons();
+            }
+
+            function renderBoard() {
+                const thinkingOverlay = document.getElementById('thinking-overlay');
+                boardElement.innerHTML = ''; 
+                if (thinkingOverlay) { 
+                    boardElement.appendChild(thinkingOverlay);
+                    thinkingOverlay.style.display = 'none';
+                }
+                
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        const square = document.createElement('div');
+                        square.classList.add('square');
+                        square.classList.add((row + col) % 2 === 0 ? 'light' : 'dark');
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+
+                        const pieceType = boardState[row][col];
+                        if (pieceType !== PIECE.EMPTY) {
+                            const piece = document.createElement('div');
+                            piece.classList.add('piece');
+                            if (pieceType === PIECE.BLACK || pieceType === PIECE.BLACK_KING) {
+                                piece.classList.add('black');
+                            } else {
+                                piece.classList.add('red');
+                            }
+                            if (pieceType === PIECE.BLACK_KING || pieceType === PIECE.RED_KING) {
+                                piece.classList.add('king');
+                            }
+                            square.appendChild(piece);
+                        }
+                        boardElement.appendChild(square);
+                    }
+                }
+                addEventListeners();
+            }
+
+            function addEventListeners() {
+                const squares = document.querySelectorAll('.square');
+                squares.forEach(square => {
+                    square.addEventListener('click', handleSquareClick);
+                });
+            }
+            
+            function handleSquareClick(e) {
+                if (gameMode === 'pva' && currentPlayer === AI_PLAYER) {
+                    return; 
+                }
+                
+                const target = e.currentTarget;
+                const row = parseInt(target.dataset.row);
+                const col = parseInt(target.dataset.col);
+                const piece = boardState[row][col];
+
+                if (selectedPiece) {
+                    const validMoves = getValidMoves(boardState, selectedPiece.row, selectedPiece.col, currentPlayer);
+                    const isMoveValid = validMoves.some(move => move.to.row === row && move.to.col === col);
+                    
+                    if (isMoveValid) {
+                        const move = validMoves.find(m => m.to.row === row && m.to.col === col);
+                        movePiece(move);
+                    } else {
+                        clearHighlights();
+                        selectedPiece = null;
+                    }
+                } 
+                else if (piece !== PIECE.EMPTY && isCurrentPlayerPiece(piece)) {
+                    selectPiece(row, col, target.querySelector('.piece'));
+                }
+            }
+
+            function selectPiece(row, col, pieceElement) {
+                clearHighlights();
+                selectedPiece = { row, col, element: pieceElement };
+                pieceElement.classList.add('selected');
+                
+                const validMoves = getValidMoves(boardState, row, col, currentPlayer);
+                validMoves.forEach(move => {
+                    const square = boardElement.querySelector(`[data-row='${move.to.row}'][data-col='${move.to.col}']`);
+                    if(square){
+                        const moveIndicator = document.createElement('div');
+                        moveIndicator.classList.add('valid-move');
+                        square.appendChild(moveIndicator);
+                    }
+                });
+            }
+
+            function movePiece(move) {
+                const { from, to, isJump, jumpedPiece } = move;
+                const pieceType = boardState[from.row][from.col];
+                
+                boardState[to.row][to.col] = pieceType;
+                boardState[from.row][from.col] = PIECE.EMPTY;
+
+                if (isJump) {
+                    captureSound.triggerAttackRelease('C2', '8n');
+                    boardState[jumpedPiece.row][jumpedPiece.col] = PIECE.EMPTY;
+                    if (currentPlayer === 'black') redScore--;
+                    else blackScore--;
+                    updateScores();
+                } else {
+                    slideSound.triggerAttackRelease('8n');
+                }
+
+                if ((pieceType === PIECE.BLACK && to.row === 0) || (pieceType === PIECE.RED && to.row === BOARD_SIZE - 1)) {
+                    boardState[to.row][to.col] = (getPieceOwner(pieceType) === 'black') ? PIECE.BLACK_KING : PIECE.RED_KING;
+                }
+
+                clearHighlights();
+                selectedPiece = null;
+                renderBoard();
+
+                if (isJump) {
+                    const nextJumps = getValidMoves(boardState, to.row, to.col, currentPlayer).filter(move => move.isJump);
+                    if (nextJumps.length > 0) {
+                        if (gameMode === 'pva' && currentPlayer === AI_PLAYER) {
+                            document.getElementById('thinking-overlay').style.display = 'flex';
+                            setTimeout(makeAIMove, 500);
+                        } else {
+                           selectPiece(to.row, to.col, boardElement.querySelector(`[data-row='${to.row}'][data-col='${to.col}'] .piece`));
+                        }
+                        return;
+                    }
+                }
+                
+                switchPlayer();
+            }
+            
+            function switchPlayer() {
+                currentPlayer = (currentPlayer === 'black') ? 'red' : 'black';
+                updateTurnIndicator();
+                updateGeminiButtons();
+                
+                if (checkGameOver()) return;
+                
+                if (gameMode === 'pva' && currentPlayer === AI_PLAYER) {
+                    document.getElementById('thinking-overlay').style.display = 'flex';
+                    setTimeout(makeAIMove, 500);
+                } else {
+                   const thinkingOverlay = document.getElementById('thinking-overlay');
+                   if (thinkingOverlay) thinkingOverlay.style.display = 'none';
+                }
+            }
+
+            function getValidMoves(currentBoard, row, col, player) {
+                const pieceType = currentBoard[row][col];
+                const moves = [];
+                const jumps = [];
+                const isKing = pieceType === PIECE.BLACK_KING || pieceType === PIECE.RED_KING;
+
+                const directions = [];
+                if (player === 'black') {
+                    directions.push([-1, -1], [-1, 1]);
+                    if (isKing) directions.push([1, -1], [1, 1]);
+                } else { // red
+                    directions.push([1, -1], [1, 1]);
+                    if (isKing) directions.push([-1, -1], [-1, 1]);
+                }
+
+                for (const [dRow, dCol] of directions) {
+                    const newRow = row + dRow;
+                    const newCol = col + dCol;
+
+                    if (isValidSquare(newRow, newCol)) {
+                        if (currentBoard[newRow][newCol] === PIECE.EMPTY) {
+                            moves.push({ from: {row, col}, to: {row: newRow, col: newCol}, isJump: false });
+                        }
+                        else if (isOpponentPiece(currentBoard[newRow][newCol], player)) {
+                            const jumpRow = newRow + dRow;
+                            const jumpCol = newCol + dCol;
+                            if (isValidSquare(jumpRow, jumpCol) && currentBoard[jumpRow][jumpCol] === PIECE.EMPTY) {
+                                jumps.push({ from: {row, col}, to: {row: jumpRow, col: jumpCol}, isJump: true, jumpedPiece: {row: newRow, col: newCol} });
+                            }
+                        }
+                    }
+                }
+                
+                return [...jumps, ...moves];
+            }
+            
+            // --- AI Logic ---
+            function makeAIMove() {
+                const bestMove = getBestMove(boardState, AI_PLAYER, AI_DEPTH);
+                if (bestMove) {
+                    movePiece(bestMove);
+                }
+            }
+
+            function getBestMove(board, player, depth) {
+                let bestScore = -Infinity;
+                let bestMove = null;
+                const allMoves = getAllPossibleMoves(board, player);
+
+                if (allMoves.length === 0) return null;
+                
+                const jumpMoves = allMoves.filter(m => m.isJump);
+                const movesToConsider = jumpMoves.length > 0 ? jumpMoves : allMoves;
+
+                for (const move of movesToConsider) {
+                    const newBoard = simulateMove(board, move);
+                    const score = minimax(newBoard, depth - 1, false, player, -Infinity, Infinity);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+                return bestMove || movesToConsider[0];
+            }
+
+            function minimax(board, depth, isMaximizing, player, alpha, beta) {
+                if (depth === 0 || isGameOver(board)) {
+                    return evaluateBoard(board, player);
+                }
+                
+                const currentTurnPlayer = isMaximizing ? player : (player === 'red' ? 'black' : 'red');
+                const moves = getAllPossibleMoves(board, currentTurnPlayer);
+                
+                if (isMaximizing) {
+                    let maxEval = -Infinity;
+                    for (const move of moves) {
+                        const newBoard = simulateMove(board, move);
+                        const evaluation = minimax(newBoard, depth - 1, false, player, alpha, beta);
+                        maxEval = Math.max(maxEval, evaluation);
+                        alpha = Math.max(alpha, evaluation);
+                        if (beta <= alpha) break;
+                    }
+                    return maxEval;
+                } else { // Minimizing
+                    let minEval = Infinity;
+                    for (const move of moves) {
+                        const newBoard = simulateMove(board, move);
+                        const evaluation = minimax(newBoard, depth - 1, true, player, alpha, beta);
+                        minEval = Math.min(minEval, evaluation);
+                        beta = Math.min(beta, evaluation);
+                        if (beta <= alpha) break;
+                    }
+                    return minEval;
+                }
+            }
+            
+            function evaluateBoard(board, player) {
+                let playerScore = 0;
+                let opponentScore = 0;
+                const opponent = player === 'red' ? 'black' : 'red';
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        const piece = board[r][c];
+                        const owner = getPieceOwner(piece);
+                        const isKing = piece === PIECE.BLACK_KING || piece === PIECE.RED_KING;
+                        const value = isKing ? 2 : 1;
+                        
+                        if (owner === player) playerScore += value;
+                        else if (owner === opponent) opponentScore += value;
+                    }
+                }
+                return playerScore - opponentScore;
+            }
+
+            function getAllPossibleMoves(board, player) {
+                let allMoves = [];
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        if (getPieceOwner(board[r][c]) === player) {
+                            const moves = getValidMoves(board, r, c, player);
+                            allMoves.push(...moves);
+                        }
+                    }
+                }
+                return allMoves;
+            }
+
+            function simulateMove(board, move) {
+                const newBoard = board.map(arr => arr.slice()); // Deep copy
+                const { from, to, isJump, jumpedPiece } = move;
+                const pieceType = newBoard[from.row][from.col];
+
+                newBoard[to.row][to.col] = pieceType;
+                newBoard[from.row][from.col] = PIECE.EMPTY;
+                if (isJump) {
+                    newBoard[jumpedPiece.row][jumpedPiece.col] = PIECE.EMPTY;
+                }
+                if ((pieceType === PIECE.BLACK && to.row === 0) || (pieceType === PIECE.RED && to.row === BOARD_SIZE - 1)) {
+                    newBoard[to.row][to.col] = (getPieceOwner(pieceType) === 'black') ? PIECE.BLACK_KING : PIECE.RED_KING;
+                }
+                return newBoard;
+            }
+
+            // --- Gemini API Integration ---
+            async function getHintFromGemini() {
+                hintBtn.disabled = true;
+                hintBtn.textContent = 'Thinking...';
+                hintModal.style.display = 'flex';
+                hintText.textContent = 'Analyzing the board...';
+
+                const boardString = boardState.map(row => 
+                    row.map(p => {
+                        if (p === PIECE.BLACK) return 'b';
+                        if (p === PIECE.BLACK_KING) return 'B';
+                        if (p === PIECE.RED) return 'r';
+                        if (p === PIECE.RED_KING) return 'R';
+                        return '.';
+                    }).join('')
+                ).join('\n');
+
+                const prompt = `
+                    You are a checkers coach. The current board state is:
+                    ${boardString}
+                    It is Black's (b, B) turn to move. Suggest a good move for Black. Be encouraging.
+                    Explain the reasoning in one or two sentences.
+                `;
+                
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        hintText.textContent = text;
+                    } else {
+                        hintText.textContent = 'Sorry, I could not think of a hint right now.';
+                    }
+                } catch (error) {
+                    console.error("Error fetching hint from Gemini:", error);
+                    hintText.textContent = 'There was an error getting the hint. Please check your connection.';
+                } finally {
+                    hintBtn.disabled = false;
+                    hintBtn.textContent = '✨ Get Hint';
+                }
+            }
+            
+            async function getTauntFromGemini() {
+                tauntBtn.disabled = true;
+                tauntBtn.textContent = '...';
+                const originalTurnText = turnIndicator.textContent;
+                turnIndicator.textContent = 'AI is thinking of a taunt...';
+                
+                const prompt = `
+                    You are the Red AI player in a game of checkers. You are playing against a human (Black).
+                    Generate a short, funny, and slightly arrogant taunt (1-2 sentences). Keep it family-friendly.
+                    Example: "Is that the best you can do? My calculations show a 98.7% chance of my victory."
+                `;
+
+                try {
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                     if (result.candidates && result.candidates.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        turnIndicator.textContent = text;
+                        setTimeout(() => {
+                           if(currentPlayer === 'black') updateTurnIndicator();
+                        }, 5000);
+                    } else {
+                       turnIndicator.textContent = originalTurnText;
+                    }
+                } catch (error) {
+                    console.error("Error fetching taunt from Gemini:", error);
+                    turnIndicator.textContent = originalTurnText;
+                } finally {
+                    tauntBtn.disabled = false;
+                    tauntBtn.textContent = '✨ Taunt Me';
+                }
+            }
+
+
+            // --- Helper and UI Functions ---
+            function checkGameOver() {
+                let winner = null;
+                if (redScore <= 0) winner = 'Black';
+                if (blackScore <= 0) winner = 'Red';
+                
+                const hasMoves = getAllPossibleMoves(boardState, currentPlayer).length > 0;
+                if (!hasMoves) {
+                    winner = currentPlayer === 'black' ? 'Red' : 'Black';
+                }
+
+                if(winner) {
+                    showGameOverModal(`${winner} Wins!`);
+                    if (gameMode === 'pva') {
+                        if (winner === 'Black') wins++;
+                        else losses++;
+                        saveRecord();
+                        updateRecordDisplay();
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            function isGameOver(board) {
+                let bScore = 0, rScore = 0;
+                for(let row of board) {
+                    for(let piece of row) {
+                        if(getPieceOwner(piece) === 'black') bScore++;
+                        if(getPieceOwner(piece) === 'red') rScore++;
+                    }
+                }
+                return bScore === 0 || rScore === 0 || getAllPossibleMoves(board, 'black').length === 0 || getAllPossibleMoves(board, 'red').length === 0;
+            }
+
+            function getPieceOwner(pieceType) {
+                if (pieceType === PIECE.BLACK || pieceType === PIECE.BLACK_KING) return 'black';
+                if (pieceType === PIECE.RED || pieceType === PIECE.RED_KING) return 'red';
+                return null;
+            }
+            
+            function clearHighlights() {
+                document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+                document.querySelectorAll('.valid-move').forEach(el => el.remove());
+            }
+
+            function isValidSquare(row, col) {
+                return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+            }
+
+            function isCurrentPlayerPiece(pieceType) {
+                return getPieceOwner(pieceType) === currentPlayer;
+            }
+
+            function isOpponentPiece(pieceType, player) {
+                const owner = getPieceOwner(pieceType);
+                return owner !== null && owner !== player;
+            }
+            
+            function updateTurnIndicator() {
+                let turnText = `${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}'s Turn`;
+                if (gameMode === 'pva') {
+                    turnText = currentPlayer === AI_PLAYER ? "AI's Turn" : "Your Turn";
+                }
+                turnIndicator.textContent = turnText;
+                turnIndicator.style.color = currentPlayer === 'black' ? '#c2c2c2' : '#ff5c5c';
+            }
+            
+            function updateGeminiButtons() {
+                const isHumanTurnInPVA = gameMode === 'pva' && currentPlayer !== AI_PLAYER;
+                hintBtn.style.display = isHumanTurnInPVA ? 'inline-block' : 'none';
+                tauntBtn.style.display = isHumanTurnInPVA ? 'inline-block' : 'none';
+            }
+
+            function updateScores() {
+                const blackLabel = gameMode === 'pva' ? 'Black (You)' : 'Black';
+                const redLabel = gameMode === 'pva' ? 'Red (AI)' : 'Red';
+                blackScoreElement.textContent = `${blackLabel}: ${blackScore}`;
+                redScoreElement.textContent = `${redLabel}: ${redScore}`;
+            }
+
+            function showGameOverModal(message) {
+                winnerMessage.textContent = message;
+                modal.style.display = 'flex';
+            }
+
+            function hideGameOverModal() {
+                modal.style.display = 'none';
+            }
+
+            // --- Record Keeping ---
+            function saveRecord() {
+                localStorage.setItem('checkersWins', wins);
+                localStorage.setItem('checkersLosses', losses);
+            }
+
+            function loadRecord() {
+                wins = parseInt(localStorage.getItem('checkersWins')) || 0;
+                losses = parseInt(localStorage.getItem('checkersLosses')) || 0;
+            }
+
+            function updateRecordDisplay() {
+                recordCounter.innerHTML = `Record: <span class="wins">${wins}W</span> – <span class="losses">${losses}L</span>`;
+            }
+            
+            // Event listeners
+            startGameBtn.addEventListener('click', () => {
+                startScreen.style.display = 'none';
+                gameContainer.style.display = 'flex';
+                setupSounds();
+                startAudio();
+                initializeGame();
+            });
+
+            newGameBtn.addEventListener('click', initializeGame);
+            playAgainBtn.addEventListener('click', () => {
+                hideGameOverModal();
+                initializeGame();
+            });
+            pvpRadio.addEventListener('change', () => {
+                updateScores();
+                updateGeminiButtons();
+            });
+            pvaRadio.addEventListener('change', () => {
+                updateScores();
+                updateGeminiButtons();
+            });
+            
+            hintBtn.addEventListener('click', getHintFromGemini);
+            tauntBtn.addEventListener('click', getTauntFromGemini);
+            closeHintBtn.addEventListener('click', () => hintModal.style.display = 'none');
+            muteBtn.addEventListener('click', toggleMute);
+
+            // Initial Load
+            loadRecord();
+            updateRecordDisplay();
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        });
+    </script>
+</body>
+</html>
